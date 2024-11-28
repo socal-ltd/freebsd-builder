@@ -3,6 +3,9 @@
 set -exu
 
 # Add your additional provisioning here for custom VM images.
---
-pkg -y install go121
-pkg -y install git
+
+install_build_packages() {
+  ASSUME_ALWAYS_YES=yes pkg install gmake llvm-devel gdb devel/premake5
+}
+
+install_build_packages
