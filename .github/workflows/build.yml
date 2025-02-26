@@ -21,6 +21,7 @@ jobs:
         matrix:
           version:
             - '14.1'
+            - '14.2'
 
           architecture:
             - name: x86-64
