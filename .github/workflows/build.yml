@@ -19,8 +19,6 @@ jobs:
       matrix:
         expected_hostname: [runnervmg1sw1.local]
         version:
-          - '14.3'
-          - '14.4'
           - '15.0'
           - '15.1'
 
