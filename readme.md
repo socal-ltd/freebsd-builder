@@ -22,7 +22,9 @@ The following architectures and versions are supported:
 
 | Version | x86-64 | ARM64 |
 |---------|--------|-------|
+| 15.1    | ✓      | ✓     |
 | 15.0    | ✓      | ✓     |
+| 14.4    | ✓      | ✓     |
 | 14.3    | ✓      | ✓     |
 | 14.2    | ✓      | ✓     |
 | 14.1    | ✓      | ✓     |
@@ -61,19 +63,55 @@ The following architectures and versions are supported:
 The above command will build the VM image and the resulting disk image will be
 at the path: `output/freebsd-<version>-<architecture>.qcow2`.
 
-## Additional Information
+## Contributing
 
-At startup, the image will look for a second hard drive. If present and it
-contains a file named `keys` at the root, it will install this file as the
-`authorized_keys` file for the `runner` user. The disk is expected to be
-formatted as FAT32. This is used as an alternative to a shared folder between
-the host and the guest, since this is not supported by the xhyve hypervisor.
-FAT32 is chosen because it's the only filesystem that is supported by both the
-host (macOS) and the guest (FreeBSD) out of the box.
+### Changelog
 
-The disk needs to be configured with the GPT partitioning scheme. The VM needs
-to be configured to use UEFI. This is required for the VM image to be able to
-run using the xhyve hypervisor.
+The changelog is maintained in the [changelog.md](changelog.md) file, following
+the [Keep a Changelog] format. The changelog is updated incrementally. That is,
+for every new feature or bugfix, add an entry to the changelog under the
+[Unreleased] section using an appropriate sub header (`Added`, `Changed`,
+`Deprecated`, `Removed`, `Fixed`, or `Security`).
 
-The qcow2 format is chosen because unused space doesn't take up any space on
-disk, it's compressible and easily converts the raw format, used by xhyve.
+Entries under these sub headers determine the semantic version bump when the
+next release is cut with [relog].
+
+### Creating a Release
+
+Releases are cut with [relog], driven by the [Unreleased] section of
+`changelog.md`. relog derives the next version from the sub headers under
+[Unreleased]:
+
+* `### Fixed` only → patch bump
+* `### Added`, `### Changed`, `### Deprecated` → minor bump
+* `### Removed` (or "Breaking" anywhere in the section) → major bump
+
+To cut a release, from a clean `master` working tree, run:
+
+```
+relog
+```
+
+To preview the changes without modifying anything:
+
+```
+relog --dry-run
+```
+
+To override the auto-detected version:
+
+```
+relog X.Y.Z
+```
+
+relog rewrites the changelog, commits the result, creates an annotated `vX.Y.Z`
+tag, and prompts before pushing. Pushing the `vX.Y.Z` tag triggers the GitHub
+Actions workflow defined in
+[`.github/workflows/build.yml`](.github/workflows/build.yml), which builds the
+VM images and, in the "Create Release" step, creates a draft GitHub release
+using the newly added changelog section as the release notes. Review the draft
+release on GitHub and publish it.
+
+[Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
+[relog]: https://github.com/jacob-carlborg/relog
+[Unreleased]: https://github.com/cross-platform-action/freebsd-builder/blob/master/changelog.md#unreleased

@@ -20,7 +20,9 @@ jobs:
         expected_hostname: [runnervmg1sw1.local]
         version:
           - '14.3'
+          - '14.4'
           - '15.0'
+          - '15.1'
 
         architecture:
           - name: x86-64
@@ -29,7 +31,7 @@ jobs:
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -48,7 +50,7 @@ jobs:
             sudo ln -s /usr/share/qemu-efi-aarch64/QEMU_EFI.fd /usr/share/qemu/edk2-aarch64-code.fd
           fi
 
-      - uses: hashicorp/setup-packer@main
+      - uses: hashicorp/setup-packer@ce93c3c08a6c2ff2275bf4b54ff0d9a75f6c9789 # v3.4.0
         with:
           version: "1.9.1"
 
@@ -114,18 +116,25 @@ jobs:
       - name: Verify File Synchronization
         run: cat guest_to_host.txt | grep -q 'guest to host'
 
-      - name: Extract Version
-        id: version
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Create Release
-        id: create_release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          name: FreeBSD ${{ steps.version.outputs.VERSION }}
-          draft: true
-          files: output/*
+        if: github.ref_type == 'tag'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github_ref_name: ${{ github.ref_name }}
+        run: |
+          version="${github_ref_name#v}"
+
+          # Matrix jobs run in parallel; the first to arrive creates the
+          # draft release, the rest upload their artifacts to it.
+          # (gh release create with --draft does not deduplicate by tag.)
+          if gh release view "$github_ref_name" >/dev/null 2>&1; then
+            gh release upload "$github_ref_name" output/* --clobber
+          else
+            sed -n "/^## \[${version}\]/,/^## \[/{/^## \[${version}\]/d;/^## \[/d;p;}" changelog.md \
+              | gh release create \
+                "$github_ref_name" \
+                --title "FreeBSD ${version}" \
+                --draft \
+                --notes-file - \
+                output/*
+          fi
